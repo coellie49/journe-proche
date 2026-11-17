@@ -15,7 +15,7 @@ body {
   box-sizing: border-box;
 }
 #palette {
-  width: 160px;
+  width: 210px;
   border-right: 1px solid #999;
 }
 #workspace {
@@ -84,4 +84,57 @@ body {
 .li-row span {
   font-family: monospace;
   font-size: 12px;
+}
+
+/* Palette par catégories */
+#palette details {
+  margin-bottom: 8px;
+}
+#palette summary {
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+#palette details > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+/* Blocs CSS : même apparence que les blocs HTML */
+.css-block {
+  border: 1px solid #999;
+  margin: 6px 0;
+  padding: 6px;
+  background: #f4f4f4;
+}
+.css-block textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.block.selected {
+  outline: 2px solid #000;
+}
+.block.drop-target {
+  outline: 2px dashed #000;
+  background: #eee;
+}
+#palette h4 {
+  margin: 12px 0 6px;
+}
+.palette-item {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.palette-item .css-btn {
+  flex: 1;
+  text-align: left;
+}
+.css-form input,
+.css-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
 }

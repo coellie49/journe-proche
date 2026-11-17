@@ -6,18 +6,74 @@
    container : true => ce bloc peut contenir d'autres blocs
 */
 const BLOCK_TYPES = {
-  titre: { tag: "h1", text: "Titre", css: "" },
-  sous_titre: { tag: "h2", text: "sous-titre", css: "" },
-  rubrique: { tag: "h3", text: "", css: "" },
-  texte: { tag: "p", text: "Texte", css: "" },
-  bouton: { tag: "button", text: "Bouton", css: "" },
-  séparation: { tag: "div", text: "", css: "", container: true },
-  en_tête: { tag: "header", text: "", css: "", container: true },
-  image: { tag: "img", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
-  liste: { tag: "ul", text: "", css: "", list: true },
-  liste_ordonnée: { tag: "ol", text: "", css: "", list: true },
-  pied_de_page: { tag: "footer", text: "", css: "", container: true },
-  
+  // --- Texte ---
+  titre: { cat: "texte", tag: "h1", text: "Titre", css: "" },
+  sous_titre: { cat: "texte", tag: "h2", text: "sous-titre", css: "" },
+  rubrique: { cat: "texte", tag: "h3", text: "", css: "" },
+  texte: { cat: "texte", tag: "p", text: "Texte", css: "" },
+  bouton: { cat: "texte", tag: "button", text: "Bouton", css: "" },
+  // --- Mise en page ---
+  séparation: {
+    cat: "mise_en_page",
+    tag: "div",
+    text: "",
+    css: "",
+    container: true,
+  },
+  // --- Structure de page ---
+  en_tête: {
+    cat: "structure",
+    tag: "header",
+    text: "",
+    css: "",
+    container: true,
+  },
+
+  pied_de_page: {
+    cat: "structure",
+    tag: "footer",
+    text: "",
+    css: "",
+    container: true,
+  },
+
+  // --- Médias ---
+  image: { cat: "medias", tag: "img", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
+
+  // --- Listes ---
+  liste: { cat: "listes", tag: "ul", text: "", css: "", list: true },
+  liste_ordonnée: { cat: "listes", tag: "ol", text: "", css: "", list: true },
+};
+
+/* Catégories de blocs (ordre d'affichage dans la palette) */
+const CATEGORIES = {
+  texte: "Texte",
+  mise_en_page: "Mise en page",
+  structure: "Structure de page",
+  medias: "Médias",
+  listes: "Listes",
+};
+
+/* ===== 1 bis. BLOCS CSS : le choix proposé aux utilisateurs =====
+   Les utilisateurs ne peuvent PAS écrire de CSS : ils choisissent seulement
+   parmi les blocs définis ici (clic ou glisser sur un bloc de la page).
+   Pour ajouter un bloc : "Nom affiché": "code CSS;"  (\n pour plusieurs lignes)
+   Pour ajouter une catégorie : ajoute une nouvelle entrée au niveau du dessus. */
+const CSS_SNIPPETS = {
+  Texte: {
+    Centré: "text-align: center;",
+    "Aligné à droite": "text-align: right;",
+
+  },
+  Couleurs: {
+    "Texte rouge": "color: #dc2626;",
+    "Texte bleu": "color: #2563eb;",
+    "Texte vert": "color: #16a34a;",
+    "Texte blanc": "color: white;",
+    "Fond gris clair": "background: #f1f5f9;",
+    "Fond sombre": "background: #1e293b;\ncolor: white;",
+    "Fond jaune": "background: #fef08a;",
+  },
 };
 
 /* ===== 2. ÉTAT =====
@@ -25,6 +81,23 @@ const BLOCK_TYPES = {
    children vaut null pour un bloc qui ne peut pas contenir d'autres blocs */
 let blocks = [];
 let nextId = 1;
+let selectedId = null; // bloc sélectionné (cible des clics sur les blocs CSS)
+
+// Tous les blocs CSS regroupés par catégorie : { cat: [{ name, css }] }
+function allCssBlocks() {
+  const out = {};
+  Object.entries(CSS_SNIPPETS).forEach(([cat, items]) => {
+    out[cat] = Object.entries(items).map(([name, css]) => ({ name, css }));
+  });
+  return out;
+}
+// Ajoute un bloc CSS à un bloc HTML
+function applyCssBlock(id, name, css) {
+  const loc = find(id);
+  if (!loc) return;
+  loc.block.cssBlocks.push({ name, css });
+  render();
+}
 
 /* ===== 3. OUTILS POUR L'ARBRE ===== */
 // Retrouve un bloc : { block, list (tableau qui le contient), index }
@@ -61,6 +134,7 @@ function addBlock(type, parentId = null, index) {
     tag: t.tag,
     text: t.text,
     css: t.css,
+    cssBlocks: [], // blocs CSS ajoutés à ce bloc : [{ name, css }]
     children: t.container ? [] : null,
     items: t.list ? ["Élément 1"] : null, // contenu des <li>
     src: "", // image importée (data URL)
@@ -115,7 +189,13 @@ function htmlOf(list, depth = 0, forCode = false) {
 function cssOf(list) {
   return list
     .map((b) => {
-      let out = `.bloc-${b.id} {\n  ${b.css.trim()}\n}`;
+      const all = [b.css, ...b.cssBlocks.map((c) => c.css)]
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .join("\n")
+        .split("\n")
+        .join("\n  ");
+      let out = `.bloc-${b.id} {\n  ${all}\n}`;
       if (b.children && b.children.length) out += "\n\n" + cssOf(b.children);
       return out;
     })
@@ -132,17 +212,70 @@ function generateCSS() {
 function renderPalette() {
   const el = document.getElementById("palette-list");
   el.innerHTML = "";
-  Object.keys(BLOCK_TYPES).forEach((type) => {
-    const btn = document.createElement("button");
-    btn.textContent = "+ " + type;
-    btn.onclick = () => addBlock(type);
-    btn.draggable = true;
-    btn.ondragstart = (e) => {
-      drag = { kind: "new", type };
-      e.dataTransfer.setData("text/plain", type);
-    };
-    el.appendChild(btn);
-    el.appendChild(document.createElement("br"));
+
+  /* --- Blocs HTML --- */
+  const h1 = document.createElement("h4");
+  h1.textContent = "Blocs HTML";
+  el.appendChild(h1);
+  Object.entries(CATEGORIES).forEach(([catId, catLabel]) => {
+    const types = Object.keys(BLOCK_TYPES).filter(
+      (t) => BLOCK_TYPES[t].cat === catId,
+    );
+    if (!types.length) return;
+    const details = document.createElement("details");
+    details.open = true;
+    const summary = document.createElement("summary");
+    summary.textContent = catLabel;
+    details.appendChild(summary);
+    types.forEach((type) => {
+      const btn = document.createElement("button");
+      btn.textContent = "+ " + type.replace(/_/g, " ");
+      btn.onclick = () => addBlock(type);
+      btn.draggable = true;
+      btn.ondragstart = (e) => {
+        drag = { kind: "new", type };
+        e.dataTransfer.setData("text/plain", type);
+      };
+      details.appendChild(btn);
+    });
+    el.appendChild(details);
+  });
+
+  /* --- Blocs CSS : clic = ajoute au bloc sélectionné, glisser = dépose sur un bloc --- */
+  const h2 = document.createElement("h4");
+  h2.textContent = "Blocs CSS";
+  el.appendChild(h2);
+  Object.entries(allCssBlocks()).forEach(([cat, items]) => {
+    const details = document.createElement("details");
+    details.open = true;
+    details.className = "css-cat";
+    const summary = document.createElement("summary");
+    summary.textContent = cat;
+    details.appendChild(summary);
+    items.forEach((it) => {
+      const row = document.createElement("div");
+      row.className = "palette-item";
+      const btn = document.createElement("button");
+      btn.className = "css-btn";
+      btn.textContent = "+ " + it.name;
+      btn.title = it.css;
+      btn.onclick = () => {
+        if (selectedId != null && find(selectedId))
+          applyCssBlock(selectedId, it.name, it.css);
+        else
+          alert(
+            "Clique d'abord sur un bloc de ta page (ou glisse le bloc CSS dessus).",
+          );
+      };
+      btn.draggable = true;
+      btn.ondragstart = (e) => {
+        drag = { kind: "css", name: it.name, css: it.css };
+        e.dataTransfer.setData("text/plain", it.name);
+      };
+      row.appendChild(btn);
+      details.appendChild(row);
+    });
+    el.appendChild(details);
   });
 }
 
@@ -157,12 +290,41 @@ function renderList(list, container) {
       <button data-act="down">↓</button>
       <button data-act="del">✕</button>
       ${b.children || b.items ? "" : `<input data-field="text" placeholder="${b.tag === "img" ? "Texte alternatif (alt)" : "Texte"}" value="">`}
-      <textarea data-field="css" rows="3" placeholder="CSS (ex: color: red;)"></textarea>
+      <div class="css-stack"></div>
     `;
     // On remplit les valeurs via JS pour éviter les soucis de guillemets
     const textInput = div.querySelector('[data-field="text"]'); // absent pour les conteneurs
     if (textInput) textInput.value = b.text;
-    div.querySelector('[data-field="css"]').value = b.css;
+
+    // Sélection du bloc (cible des clics sur les blocs CSS)
+    div.dataset.id = b.id;
+    if (b.id === selectedId) div.classList.add("selected");
+    div.addEventListener("click", (e) => {
+      if (e.target.closest(".block") !== div) return;
+      selectedId = b.id;
+      document
+        .querySelectorAll(".block.selected")
+        .forEach((x) => x.classList.remove("selected"));
+      div.classList.add("selected");
+    });
+
+    // Blocs CSS ajoutés à ce bloc : on peut les retirer, pas modifier leur code
+    const stack = div.querySelector(".css-stack");
+    b.cssBlocks.forEach((c, i) => {
+      const cb = document.createElement("div");
+      cb.className = "css-block";
+      const name = document.createElement("strong");
+      name.textContent = "css";
+      const del = document.createElement("button");
+      del.textContent = "✕";
+      del.title = "Retirer ce bloc CSS";
+      del.onclick = () => {
+        b.cssBlocks.splice(i, 1);
+        render();
+      };
+      cb.append(name, " " + c.name + " ", del);
+      stack.appendChild(cb);
+    });
 
     div.querySelector('[data-act="up"]').onclick = () => moveBlock(b.id, -1);
     div.querySelector('[data-act="down"]').onclick = () => moveBlock(b.id, 1);
@@ -201,7 +363,7 @@ function renderList(list, container) {
         thumb.className = "thumb";
         box.appendChild(thumb);
       }
-      div.insertBefore(box, div.querySelector('[data-field="css"]'));
+      div.insertBefore(box, div.querySelector(".css-stack"));
     }
 
     // Liste : un champ par <li>
@@ -237,7 +399,7 @@ function renderList(list, container) {
         render();
       };
       box.appendChild(add);
-      div.insertBefore(box, div.querySelector('[data-field="css"]'));
+      div.insertBefore(box, div.querySelector(".css-stack"));
     }
 
     // Mise à jour en direct sans recréer les champs (garde le focus)
@@ -320,8 +482,25 @@ function dropAllowed(parentId) {
   return parentId !== drag.id && !contains(find(drag.id).block, parentId);
 }
 
+function clearTarget() {
+  document
+    .querySelectorAll(".drop-target")
+    .forEach((x) => x.classList.remove("drop-target"));
+}
+
 ws.ondragover = (e) => {
   if (!drag) return;
+  if (drag.kind === "css") {
+    // un bloc CSS se dépose sur un bloc HTML
+    clearTarget();
+    dropLine.remove();
+    const t = e.target.closest && e.target.closest(".block");
+    if (t) {
+      e.preventDefault();
+      t.classList.add("drop-target");
+    }
+    return;
+  }
   const zone = zoneAt(e);
   if (!dropAllowed(zoneParent(zone))) {
     dropLine.remove();
@@ -332,10 +511,24 @@ ws.ondragover = (e) => {
   zone.insertBefore(dropLine, kids[dropIndex(zone, e.clientY)] || null);
 };
 ws.ondragleave = (e) => {
-  if (!ws.contains(e.relatedTarget)) dropLine.remove();
+  if (!ws.contains(e.relatedTarget)) {
+    dropLine.remove();
+    clearTarget();
+  }
 };
 ws.ondrop = (e) => {
   if (!drag) return;
+  if (drag.kind === "css") {
+    const t = e.target.closest && e.target.closest(".block");
+    clearTarget();
+    if (t) {
+      e.preventDefault();
+      selectedId = Number(t.dataset.id);
+      applyCssBlock(selectedId, drag.name, drag.css);
+    }
+    drag = null;
+    return;
+  }
   const zone = zoneAt(e);
   const parentId = zoneParent(zone);
   if (!dropAllowed(parentId)) return;
@@ -348,6 +541,7 @@ ws.ondrop = (e) => {
 };
 document.ondragend = () => {
   dropLine.remove();
+  clearTarget();
   drag = null;
 };
 
