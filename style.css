@@ -1,0 +1,62 @@
+/* ===== STYLE : volontairement minimal, à toi de jouer ===== */
+body {
+  font-family: sans-serif;
+  margin: 0;
+}
+#app {
+  display: flex;
+  height: 100vh;
+}
+#palette,
+#workspace,
+#output {
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+}
+#palette {
+  width: 160px;
+  border-right: 1px solid #999;
+}
+#workspace {
+  width: 360px;
+  border-right: 1px solid #999;
+  min-height: 100px;
+}
+#output {
+  flex: 1;
+}
+.block {
+  border: 1px solid #999;
+  margin-bottom: 8px;
+  padding: 6px;
+}
+.block input,
+.block textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+#preview {
+  width: 100%;
+  height: 94vh;
+  border: 1px solid #999;
+}
+.handle {
+  cursor: grab;
+  user-select: none;
+}
+#drop-line {
+  height: 3px;
+  background: #000;
+  margin: 2px 0;
+}
+
+/* Zone où l'on peut déposer des blocs (racine ou intérieur d'un conteneur) */
+.dropzone {
+  min-height: 24px;
+}
+.block .dropzone {
+  border: 1px dashed #999;
+  margin-top: 6px;
+  padding: 4px;
+}
