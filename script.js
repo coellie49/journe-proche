@@ -1,15 +1,23 @@
 /* ===== 1. TYPES DE BLOCS : ajoute les tiens ici =====
    tag       : balise HTML générée
+   list      : true => le bloc contient des <li> éditables un par un
    text      : texte par défaut
    css       : CSS par défaut (appliqué à la classe du bloc)
    container : true => ce bloc peut contenir d'autres blocs
 */
 const BLOCK_TYPES = {
   titre: { tag: "h1", text: "Titre", css: "" },
+  sous_titre: { tag: "h2", text: "sous-titre", css: "" },
+  rubrique: { tag: "h3", text: "", css: "" },
   texte: { tag: "p", text: "Texte", css: "" },
   bouton: { tag: "button", text: "Bouton", css: "" },
-  conteneur: { tag: "div", text: "", css: "", container: true },
+  séparation: { tag: "div", text: "", css: "", container: true },
   en_tête: { tag: "header", text: "", css: "", container: true },
+  image: { tag: "img", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
+  liste: { tag: "ul", text: "", css: "", list: true },
+  liste_ordonnée: { tag: "ol", text: "", css: "", list: true },
+  pied_de_page: { tag: "footer", text: "", css: "", container: true },
+  
 };
 
 /* ===== 2. ÉTAT =====
@@ -54,6 +62,9 @@ function addBlock(type, parentId = null, index) {
     text: t.text,
     css: t.css,
     children: t.container ? [] : null,
+    items: t.list ? ["Élément 1"] : null, // contenu des <li>
+    src: "", // image importée (data URL)
+    fileName: "", // nom du fichier importé
   });
   render();
 }
@@ -79,13 +90,22 @@ function moveBlock(id, dir) {
 }
 
 /* ===== 5. GÉNÉRATION DU CODE ===== */
-function htmlOf(list, depth = 0) {
+// forCode = true : on affiche le nom du fichier au lieu de l'image encodée (trop longue)
+function htmlOf(list, depth = 0, forCode = false) {
   const pad = "  ".repeat(depth);
   return list
     .map((b) => {
+      if (b.tag === "img") {
+        const src = forCode ? b.fileName : b.src;
+        return `${pad}<img class="bloc-${b.id}" src="${src}" alt="${b.text}">`;
+      }
+      if (b.items) {
+        const lis = b.items.map((it) => `${pad}  <li>${it}</li>`).join("\n");
+        return `${pad}<${b.tag} class="bloc-${b.id}">${lis ? "\n" + lis + "\n" + pad : ""}</${b.tag}>`;
+      }
       const kids =
         b.children && b.children.length
-          ? "\n" + htmlOf(b.children, depth + 1) + "\n" + pad
+          ? "\n" + htmlOf(b.children, depth + 1, forCode) + "\n" + pad
           : "";
       const text = b.children ? "" : b.text; // un conteneur n'a pas de texte
       return `${pad}<${b.tag} class="bloc-${b.id}">${text}${kids}</${b.tag}>`;
@@ -101,8 +121,8 @@ function cssOf(list) {
     })
     .join("\n\n");
 }
-function generateHTML() {
-  return htmlOf(blocks);
+function generateHTML(forCode = false) {
+  return htmlOf(blocks, 0, forCode);
 }
 function generateCSS() {
   return cssOf(blocks);
@@ -136,7 +156,7 @@ function renderList(list, container) {
       <button data-act="up">↑</button>
       <button data-act="down">↓</button>
       <button data-act="del">✕</button>
-      ${b.children ? "" : '<input data-field="text" placeholder="Texte" value="">'}
+      ${b.children || b.items ? "" : `<input data-field="text" placeholder="${b.tag === "img" ? "Texte alternatif (alt)" : "Texte"}" value="">`}
       <textarea data-field="css" rows="3" placeholder="CSS (ex: color: red;)"></textarea>
     `;
     // On remplit les valeurs via JS pour éviter les soucis de guillemets
@@ -155,6 +175,70 @@ function renderList(list, container) {
       e.dataTransfer.setData("text/plain", String(b.id));
       e.dataTransfer.setDragImage(div, 0, 0);
     };
+
+    // Image : import d'un fichier depuis l'ordinateur
+    if (b.tag === "img") {
+      const box = document.createElement("div");
+      box.className = "img-import";
+      const file = document.createElement("input");
+      file.type = "file";
+      file.accept = "image/*";
+      file.onchange = () => {
+        const f = file.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          b.src = reader.result;
+          b.fileName = f.name;
+          render();
+        };
+        reader.readAsDataURL(f);
+      };
+      box.appendChild(file);
+      if (b.src) {
+        const thumb = document.createElement("img");
+        thumb.src = b.src;
+        thumb.className = "thumb";
+        box.appendChild(thumb);
+      }
+      div.insertBefore(box, div.querySelector('[data-field="css"]'));
+    }
+
+    // Liste : un champ par <li>
+    if (b.items) {
+      const box = document.createElement("div");
+      box.className = "li-list";
+      b.items.forEach((item, i) => {
+        const row = document.createElement("div");
+        row.className = "li-row";
+        const label = document.createElement("span");
+        label.textContent = "<li>";
+        const inp = document.createElement("input");
+        inp.value = item;
+        inp.placeholder = "Texte de l'élément";
+        inp.oninput = () => {
+          b.items[i] = inp.value;
+          renderOutput();
+        };
+        const del = document.createElement("button");
+        del.textContent = "✕";
+        del.title = "Supprimer cet élément";
+        del.onclick = () => {
+          b.items.splice(i, 1);
+          render();
+        };
+        row.append(label, inp, del);
+        box.appendChild(row);
+      });
+      const add = document.createElement("button");
+      add.textContent = "+ li";
+      add.onclick = () => {
+        b.items.push("Élément " + (b.items.length + 1));
+        render();
+      };
+      box.appendChild(add);
+      div.insertBefore(box, div.querySelector('[data-field="css"]'));
+    }
 
     // Mise à jour en direct sans recréer les champs (garde le focus)
     div.querySelectorAll("[data-field]").forEach((input) => {
@@ -183,11 +267,12 @@ function renderBlocks() {
 }
 
 function renderOutput() {
-  const html = generateHTML();
+  const html = generateHTML(); // aperçu : images complètes
+  const htmlCode = generateHTML(true); // code affiché : noms de fichiers
   const css = generateCSS();
   document.getElementById("preview").srcdoc =
     `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
-  document.getElementById("code-html").textContent = html;
+  document.getElementById("code-html").textContent = htmlCode;
   document.getElementById("code-css").textContent = css;
 }
 
@@ -269,4 +354,3 @@ document.ondragend = () => {
 /* ===== DÉMARRAGE ===== */
 renderPalette();
 render();
-screen

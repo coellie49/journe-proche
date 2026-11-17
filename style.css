@@ -60,3 +60,28 @@ body {
   margin-top: 6px;
   padding: 4px;
 }
+
+/* Import d'image et liste d'éléments */
+.img-import {
+  margin: 6px 0;
+}
+.thumb {
+  display: block;
+  max-width: 100%;
+  max-height: 80px;
+  margin-top: 4px;
+  border: 1px solid #999;
+}
+.li-list {
+  margin: 6px 0;
+}
+.li-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.li-row span {
+  font-family: monospace;
+  font-size: 12px;
+}
