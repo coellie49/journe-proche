@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éditeur de blocs</title>
+<style>
+  /* ===== STYLE : volontairement minimal, à toi de jouer ===== */
+  body { font-family: sans-serif; margin: 0; }
+  #app { display: flex; height: 100vh; }
+  #palette, #workspace, #output { overflow: auto; padding: 8px; box-sizing: border-box; }
+  #palette { width: 160px; border-right: 1px solid #999; }
+  #workspace { width: 320px; border-right: 1px solid #999; }
+  #output { flex: 1; }
+  .block { border: 1px solid #999; margin-bottom: 8px; padding: 6px; }
+  .block input, .block textarea { width: 100%; box-sizing: border-box; }
+  #preview { width: 100%; height: 90%; border: 1px solid #999; }
+  #code { width: 100%; white-space: pre-wrap; }
+  .handle { cursor: grab; user-select: none; }
+  #drop-line { height: 3px; background: #000; margin: 2px 0; }
+  #workspace { min-height: 100px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- 1. PALETTE : les blocs disponibles -->
+  <div id="palette">
+    <h3>Blocs</h3>
+    <div id="palette-list"></div>
+  </div>
+
+  <!-- 2. ESPACE DE TRAVAIL : les blocs ajoutés -->
+  <div id="workspace">
+    <h3>Ma page</h3>
+    <div id="blocks"></div>
+  </div>
+
+  <!-- 3. SORTIE : aperçu ou code -->
+  <div id="output">
+    <label><input type="checkbox" id="toggle-code"> Voir le code</label>
+    <div id="view-preview"><iframe id="preview"></iframe></div>
+    <div id="view-code" hidden>
+      <h4>HTML</h4><pre id="code-html"></pre>
+      <h4>CSS</h4><pre id="code-css"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 1. TYPES DE BLOCS : ajoute les tiens ici =====
+   tag      : balise HTML générée
+   text     : texte par défaut
+   css      : CSS par défaut (appliqué à la classe du bloc)
+*/
+const BLOCK_TYPES = {
+  titre:   { tag: 'h1',     text: 'Titre',   css: '' },
+  texte:   { tag: 'p',      text: 'Texte',   css: '' },
+  bouton:  { tag: 'button', text: 'Bouton',  css: '' },
+  conteneur: { tag: 'div',  text: '',        css: '' },
+};
+
+/* ===== 2. ÉTAT ===== */
+let blocks = [];   // [{ id, type, tag, text, css }]
+let nextId = 1;
+
+/* ===== 3. ACTIONS ===== */
+function addBlock(type, index = blocks.length) {
+  const t = BLOCK_TYPES[type];
+  blocks.splice(index, 0, { id: nextId++, type, tag: t.tag, text: t.text, css: t.css });
+  render();
+}
+function removeBlock(id) { blocks = blocks.filter(b => b.id !== id); render(); }
+function moveBlockTo(id, index) {
+  const from = blocks.findIndex(b => b.id === id);
+  const [b] = blocks.splice(from, 1);
+  if (from < index) index--;
+  blocks.splice(index, 0, b);
+  render();
+}
+function moveBlock(id, dir) {
+  const i = blocks.findIndex(b => b.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= blocks.length) return;
+  [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+  render();
+}
+
+/* ===== 4. GÉNÉRATION DU CODE ===== */
+function generateHTML() {
+  return blocks.map(b => `<${b.tag} class="bloc-${b.id}">${b.text}</${b.tag}>`).join('\n');
+}
+function generateCSS() {
+  return blocks.map(b => `.bloc-${b.id} {\n  ${b.css.trim()}\n}`).join('\n\n');
+}
+
+/* ===== 5. AFFICHAGE ===== */
+function renderPalette() {
+  const el = document.getElementById('palette-list');
+  el.innerHTML = '';
+  Object.keys(BLOCK_TYPES).forEach(type => {
+    const btn = document.createElement('button');
+    btn.textContent = '+ ' + type;
+    btn.onclick = () => addBlock(type);
+    btn.draggable = true;
+    btn.ondragstart = e => {
+      drag = { kind: 'new', type };
+      e.dataTransfer.setData('text/plain', type);
+    };
+    el.appendChild(btn);
+    el.appendChild(document.createElement('br'));
+  });
+}
+
+function renderBlocks() {
+  const el = document.getElementById('blocks');
+  el.innerHTML = '';
+  blocks.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.innerHTML = `
+      <span class="handle" draggable="true" title="Glisser">⠿</span> <strong>${b.type}</strong> &lt;${b.tag}&gt;
+      <button data-act="up">↑</button>
+      <button data-act="down">↓</button>
+      <button data-act="del">✕</button>
+      <input data-field="text" placeholder="Texte" value="">
+      <textarea data-field="css" rows="3" placeholder="CSS (ex: color: red;)"></textarea>
+    `;
+    // On remplit les valeurs via JS pour éviter les soucis de guillemets
+    div.querySelector('[data-field="text"]').value = b.text;
+    div.querySelector('[data-field="css"]').value = b.css;
+
+    div.querySelector('[data-act="up"]').onclick = () => moveBlock(b.id, -1);
+    div.querySelector('[data-act="down"]').onclick = () => moveBlock(b.id, 1);
+    div.querySelector('[data-act="del"]').onclick = () => removeBlock(b.id);
+
+    // Glisser-déposer : on attrape le bloc par sa poignée
+    div.querySelector('.handle').ondragstart = e => {
+      drag = { kind: 'move', id: b.id };
+      e.dataTransfer.setData('text/plain', String(b.id));
+      e.dataTransfer.setDragImage(div, 0, 0);
+    };
+
+    // Mise à jour en direct sans recréer les champs (garde le focus)
+    div.querySelectorAll('[data-field]').forEach(input => {
+      input.oninput = () => { b[input.dataset.field] = input.value; renderOutput(); };
+    });
+    el.appendChild(div);
+  });
+}
+
+function renderOutput() {
+  const html = generateHTML();
+  const css = generateCSS();
+  document.getElementById('preview').srcdoc =
+    `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
+  document.getElementById('code-html').textContent = html;
+  document.getElementById('code-css').textContent = css;
+}
+
+function render() { renderBlocks(); renderOutput(); }
+
+/* ===== 6. MODE CODE / APERÇU ===== */
+document.getElementById('toggle-code').onchange = e => {
+  document.getElementById('view-preview').hidden = e.target.checked;
+  document.getElementById('view-code').hidden = !e.target.checked;
+};
+
+/* ===== 7. GLISSER-DÉPOSER =====
+   - palette -> espace de travail : ajoute un bloc
+   - poignée ⠿ d'un bloc -> espace de travail : réordonne */
+let drag = null; // { kind: 'new', type } ou { kind: 'move', id }
+const dropLine = document.createElement('div');
+dropLine.id = 'drop-line';
+
+function dropIndex(y) {
+  const els = [...document.querySelectorAll('#blocks .block')];
+  for (let i = 0; i < els.length; i++) {
+    const r = els[i].getBoundingClientRect();
+    if (y < r.top + r.height / 2) return i;
+  }
+  return els.length;
+}
+
+const ws = document.getElementById('workspace');
+ws.ondragover = e => {
+  if (!drag) return;
+  e.preventDefault();
+  const container = document.getElementById('blocks');
+  const els = container.querySelectorAll('.block');
+  container.insertBefore(dropLine, els[dropIndex(e.clientY)] || null);
+};
+ws.ondragleave = e => { if (!ws.contains(e.relatedTarget)) dropLine.remove(); };
+ws.ondrop = e => {
+  e.preventDefault();
+  if (!drag) return;
+  const i = dropIndex(e.clientY);
+  dropLine.remove();
+  if (drag.kind === 'new') addBlock(drag.type, i);
+  else moveBlockTo(drag.id, i);
+  drag = null;
+};
+document.ondragend = () => { dropLine.remove(); drag = null; };
+
+/* ===== DÉMARRAGE ===== */
+renderPalette();
+render();
+</script>
+</body>
+</html>
