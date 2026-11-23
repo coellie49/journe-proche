@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éditeur de blocs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+  <!-- 1. PALETTE : les blocs disponibles -->
+  <div id="palette">
+    <h3>Blocs</h3>
+    <div id="palette-list"></div>
+  </div>
+
+  <!-- 2. ESPACE DE TRAVAIL : les blocs ajoutés -->
+  <div id="workspace">
+    <h3>Ma page</h3>
+    <div id="blocks" class="dropzone" data-parent=""></div>
+  </div>
+
+  <!-- 3. SORTIE : aperçu ou code -->
+  <div id="output">
+    <label><input type="checkbox" id="toggle-code"> Voir le code</label>
+    <div id="view-preview"><iframe id="preview"></iframe></div>
+    <div id="view-code" hidden>
+      <h4>HTML</h4><pre id="code-html"></pre>
+      <h4>CSS</h4><pre id="code-css"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
