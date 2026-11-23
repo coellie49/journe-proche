@@ -2,10 +2,97 @@
 body {
   font-family: sans-serif;
   margin: 0;
+  /* La page fait exactement la hauteur de l'écran : le header en haut, le reste en dessous */
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
+
+header {
+  flex-shrink: 0;
+  display: flex;
+  width: 100%; /* toute la largeur de la page (avant : 1500px) */
+  box-sizing: border-box; /* le padding est compris dans les 100% */
+  height: 120px; /* 100px + 2 x 10px de padding : même hauteur qu'avant */
+  padding: 10px;
+  justify-content: space-between;
+  align-items: center;
+  background: #2dc6d2;
+}
+#projet {
+  color: #000;
+  font-family: Inter;
+  font-size: 64px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+#logo_mds {
+  height: 6.86863rem;
+  flex-shrink: 0;
+  align-self: stretch;
+  aspect-ratio: 207/109.9;
+  max-width: 250px;
+}
+#logoLiteWeb {
+  height: 10rem;
+  aspect-ratio: 207/109.9;
+  max-width: 250px;
+}
+/* Wrapper : barre bleue + espace de travail + sortie */
 #app {
   display: flex;
-  height: 100vh;
+  align-items: stretch; /* sidebar, workspace et output prennent toute la hauteur */
+  flex: 1; /* occupe tout l'espace sous le header */
+  min-height: 0; /* permet aux zones de défiler au lieu de dépasser */
+  background: #01003b; /* même couleur que "Ma page" : remplit les coins arrondis de la sidebar */
+}
+
+/* ===== BARRE BLEUE animée (Frame 7 : 125px -> 585px) ===== */
+#sidebar {
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 125px;
+  padding: 10px;
+  border-radius: 0 40px 40px 0;
+  background: #002dce;
+  overflow: hidden;
+  transition: width 0.3s ease-out;
+}
+#sidebar.open {
+  width: 585px;
+}
+#fond_picto {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  display: flex;
+  width: 66px;
+  height: 106px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border-radius: 59px;
+  background: #fff;
+  cursor: pointer;
+  z-index: 2;
+}
+/* Vector : la flèche se retourne */
+#fond_picto svg {
+  transition: transform 0.3s ease-out;
+}
+#sidebar.open #fond_picto svg {
+  transform: scaleX(-1);
+}
+#svg {
+  width: 43px;
+  height: 68px;
+  transform: scaleX(-1);
+  flex-shrink: 0;
+  fill: #000;
 }
 #palette,
 #workspace,
@@ -14,19 +101,42 @@ body {
   padding: 8px;
   box-sizing: border-box;
 }
+/* Palette : apparaît en fondu dans la barre bleue (opacity 0 -> 1) */
 #palette {
-  width: 210px;
-  border-right: 1px solid #999;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 430px;
+  height: calc(100% - 20px);
+  color: #fff;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s linear,
+    visibility 0s linear 0.3s;
+}
+#sidebar.open #palette {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.3s linear,
+    visibility 0s;
 }
 #workspace {
-  width: 360px;
-  border-right: 1px solid #999;
-  min-height: 100px;
+  display: flex;
+  flex-direction: row; /* blocs (ou code) à gauche, pictos à côté, à droite */
+  width: 600px;
+  align-items: flex-start;
+  gap: 10px;
+  align-self: stretch;
+  background: #01003b;
 }
 #output {
   flex: 1;
+  background: #fff; /* fond blanc autour de l'aperçu */
 }
 .block {
+  cursor: grab; /* tout le bloc peut être attrapé */
   border: 1px solid #999;
   margin-bottom: 8px;
   padding: 6px;
@@ -36,10 +146,16 @@ body {
   width: 100%;
   box-sizing: border-box;
 }
+#view-preview {
+  height: 100%;
+}
 #preview {
+  display: block;
   width: 100%;
-  height: 94vh;
+  height: 100%;
   border: 1px solid #999;
+  box-sizing: border-box;
+  background: #fff; /* fond blanc dans l'aperçu du site */
 }
 .handle {
   cursor: grab;
@@ -57,8 +173,9 @@ body {
 }
 .block .dropzone {
   border: 1px dashed #999;
+  border-radius: 16px; /* suit les coins arrondis des blocs (20px) */
   margin-top: 6px;
-  padding: 4px;
+  padding: 8px; /* un peu plus d'espace pour que les coins restent arrondis */
 }
 
 /* Import d'image et liste d'éléments */
@@ -137,4 +254,179 @@ body {
   width: 100%;
   box-sizing: border-box;
   margin-bottom: 4px;
+}
+
+/* Code affiché à la place des blocs dans "Ma page" */
+#view-code {
+  min-width: 0;
+  color: #fff;
+}
+#view-code pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ===== Couleurs des blocs selon leur catégorie ===== */
+.block[data-cat="texte"] {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  border-radius: 20px;
+}
+.block[data-cat="mise_en_page"] {
+  background: #fff3e0;
+  border-color: #ff9800;
+  border-radius: 20px;
+}
+.block[data-cat="structure"] {
+  background: #ede7f6;
+  border-color: #673ab7;
+  border-radius: 20px;
+}
+.block[data-cat="medias"] {
+  background: #e8f5e9;
+  border-color: #4caf50;
+  border-radius: 20px;
+}
+.block[data-cat="listes"] {
+  background: #fce4ec;
+  border-color: #e91e63;
+  border-radius: 20px;
+}
+
+/* ===== (Optionnel) Couleur pour un type précis : prend le dessus sur la catégorie ===== */
+.block[data-type="titre"] {
+  background: #bbdefb;
+}
+.block[data-type="bouton"] {
+  background: #c5cae9;
+}
+
+/* ===== Couleurs des boutons de la palette (à gauche), par catégorie ===== */
+#palette button[data-cat="texte"] {
+  background: #e3f2fd;
+  border: 2px solid #2196f3;
+  
+}
+#palette button[data-cat="mise_en_page"] {
+  background: #fff3e0;
+  border: 2px solid #ff9800;
+}
+#palette button[data-cat="structure"] {
+  background: #ede7f6;
+  border: 2px solid #673ab7;
+}
+#palette button[data-cat="medias"] {
+  background: #e8f5e9;
+  border: 2px solid #4caf50;
+}
+#palette button[data-cat="listes"] {
+  background: #fce4ec;
+  border: 2px solid #e91e63;
+}
+#palette button[data-cat] {
+  border-radius: 12px; /* forme des boutons */
+  padding: 6px 10px;
+  color: #000;
+}
+
+/* (Optionnel) un type précis */
+#palette button[data-type="titre"] {
+  background: #bbdefb;
+}
+#palette button[data-type="bouton"] {
+  background: #c5cae9;
+}
+
+/* ===== Couleurs des blocs CSS, par catégorie =====
+   Le nom entre guillemets doit être EXACTEMENT celui de CSS_SNIPPETS dans script.js
+   (majuscules et accents compris). Une nouvelle catégorie = une nouvelle règle. */
+
+/* Forme commune (palette + page) */
+.css-block,
+#palette .css-btn {
+  border-radius: 12px;
+}
+#palette .css-btn {
+  padding: 6px 10px;
+  color: #000;
+}
+
+/* Catégorie "Texte" */
+.css-block[data-csscat="Texte"],
+#palette .css-btn[data-csscat="Texte"] {
+  background: #e0f7fa;
+  border: 2px solid #00acc1;
+}
+/* Catégorie "Couleurs" */
+.css-block[data-csscat="Couleurs"],
+#palette .css-btn[data-csscat="Couleurs"] {
+  background: #fffde7;
+  border: 2px solid #fbc02d;
+}
+/* Catégorie "espacements" */
+.css-block[data-csscat="espacements"],
+#palette .css-btn[data-csscat="espacements"] {
+  background: #efebe9;
+  border: 2px solid #795548;
+}
+
+/* ===== Pictos pour basculer entre blocs et code ===== */
+#workspace > #blocks,
+#workspace > #view-code {
+  flex: 1;
+  min-width: 0;
+  max-width: 500px; /* largeur maximale des blocs : change cette valeur */
+}
+#workspace > #blocks {
+  align-self: stretch; /* toute la hauteur reste déposable */
+}
+#view-switch {
+  display: flex;
+  padding: 10px 20px;
+  align-items: center;
+  gap: 15px;
+  border-radius: 15px;
+  background: #020068;
+  flex-shrink: 0;
+  align-self: flex-start; /* en haut */
+  margin-left: auto; /* collé à droite, à côté des blocs */
+  order: 2; /* placé après les blocs dans la ligne */
+}
+.view-btn {
+  display: flex;
+  width: 70px;
+  height: 70px;
+  padding: 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: 5px;
+  background: #0300a0; /* inactif */
+  cursor: pointer;
+  flex-shrink: 0;
+  fill: #fff;
+}
+.view-btn.active {
+  background: #4541ff; /* actif */
+}
+.view-btn svg {
+  flex-shrink: 0;
+  align-self: stretch;
+  height: 50px;
+}
+
+/* Curseurs normaux sur les champs et boutons à l'intérieur d'un bloc */
+.block input,
+.block textarea {
+  cursor: text;
+}
+.block button {
+  cursor: pointer;
+}
+
+/* Surlignage rouge quand on glisse un bloc sur la sidebar pour le supprimer */
+#sidebar.delete-hover {
+  box-shadow: inset 0 0 0 5px #ff4d4d;
 }

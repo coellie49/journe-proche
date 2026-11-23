@@ -1,37 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Éditeur de blocs</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Éditeur de blocs</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <img id="logoLiteWeb" src="lite_web.png" />
+      <img id="logo_mds" src="logo_mydigitalschool.webp" alt="logo mds" />
+    </header>
 
-<div id="app">
-  <!-- 1. PALETTE : les blocs disponibles -->
-  <div id="palette">
-    <h3>Blocs</h3>
-    <div id="palette-list"></div>
-  </div>
+    <div id="app">
+      <!-- 1. BARRE BLEUE : bouton flèche + palette (s'ouvre au clic) -->
+      <aside id="sidebar">
+      <div id="fond_picto" role="button" tabindex="0" aria-label="Ouvrir / fermer les blocs" aria-expanded="false">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="43"
+          height="68"
+          viewBox="0 0 43 68"
+          fill="none"
+        >
+          <path
+            d="M0 59.9533L26.5776 34L0 7.99L8.18219 0L43 34L8.18219 68L0 59.9533Z"
+            fill="black"
+          />
+        </svg>
+      </div>
+      <div id="palette">
+        <h3>Blocs</h3>
+        <div id="palette-list"></div>
+      </div>
+      </aside>
 
-  <!-- 2. ESPACE DE TRAVAIL : les blocs ajoutés -->
-  <div id="workspace">
-    <h3>Ma page</h3>
-    <div id="blocks" class="dropzone" data-parent=""></div>
-  </div>
+      <!-- 2. ESPACE DE TRAVAIL : les blocs ajoutés -->
+      <div id="workspace">
+        <!-- Deux pictos pour basculer entre les blocs et le code -->
+        <div id="view-switch">
+          <button
+            type="button"
+            id="btn-blocks"
+            class="view-btn active"
+            title="Voir les blocs"
+            aria-label="Voir les blocs"
+            aria-pressed="true"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" fill="none">
+              <path d="M44.0476 23.8095H40.4762V14.2857C40.4762 11.6429 38.3333 9.52381 35.7143 9.52381H26.1905V5.95238C26.1905 4.37371 25.5634 2.8597 24.4471 1.74341C23.3308 0.627124 21.8168 0 20.2381 0C18.6594 0 17.1454 0.627124 16.0291 1.74341C14.9128 2.8597 14.2857 4.37371 14.2857 5.95238V9.52381H4.7619C3.49897 9.52381 2.28776 10.0255 1.39473 10.9185C0.501699 11.8116 0 13.0228 0 14.2857V23.3333H3.57143C7.14286 23.3333 10 26.1905 10 29.7619C10 33.3333 7.14286 36.1905 3.57143 36.1905H0V45.2381C0 46.501 0.501699 47.7122 1.39473 48.6053C2.28776 49.4983 3.49897 50 4.7619 50H13.8095V46.4286C13.8095 42.8571 16.6667 40 20.2381 40C23.8095 40 26.6667 42.8571 26.6667 46.4286V50H35.7143C36.9772 50 38.1884 49.4983 39.0815 48.6053C39.9745 47.7122 40.4762 46.501 40.4762 45.2381V35.7143H44.0476C45.6263 35.7143 47.1403 35.0872 48.2566 33.9709C49.3729 32.8546 50 31.3406 50 29.7619C50 28.1832 49.3729 26.6692 48.2566 25.5529C47.1403 24.4366 45.6263 23.8095 44.0476 23.8095Z" fill="white"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            id="btn-code"
+            class="view-btn"
+            title="Voir le code"
+            aria-label="Voir le code"
+            aria-pressed="false"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" fill="none">
+              <path d="M27.1353 0L31.8378 1.11111L22.8647 50L18.1622 48.8889L27.1353 0ZM43.2102 25L34.5969 15.0278V7.16667L50 25L34.5969 42.8056V34.9444L43.2102 25ZM0 25L15.4031 7.16667V15.0278L6.78983 25L15.4031 34.9444V42.8056L0 25Z" fill="white"/>
+            </svg>
+          </button>
+        </div>
+        <div id="blocks" class="dropzone" data-parent=""></div>
+        <!-- Le code remplace les blocs quand la case est cochée -->
+        <div id="view-code" hidden>
+          <h4>HTML</h4>
+          <pre id="code-html"></pre>
+          <h4>CSS</h4>
+          <pre id="code-css"></pre>
+        </div>
+      </div>
 
-  <!-- 3. SORTIE : aperçu ou code -->
-  <div id="output">
-    <label><input type="checkbox" id="toggle-code"> Voir le code</label>
-    <div id="view-preview"><iframe id="preview"></iframe></div>
-    <div id="view-code" hidden>
-      <h4>HTML</h4><pre id="code-html"></pre>
-      <h4>CSS</h4><pre id="code-css"></pre>
+      <!-- 3. SORTIE : aperçu ou code -->
+      <div id="output">
+        <div id="view-preview"><iframe id="preview"></iframe></div>
+      </div>
     </div>
-  </div>
-</div>
 
-<script src="script.js"></script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>

@@ -39,6 +39,7 @@ const BLOCK_TYPES = {
 
   // --- Médias ---
   image: { cat: "medias", tag: "img", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
+  vidéo: { cat: "medias", tag: "iframe", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
 
   // --- Listes ---
   liste: { cat: "listes", tag: "ul", text: "", css: "", list: true },
@@ -63,7 +64,7 @@ const CSS_SNIPPETS = {
   Texte: {
     Centré: "text-align: center;",
     "Aligné à droite": "text-align: right;",
-
+    "Aligné à gauche": "text-align: left;",
   },
   Couleurs: {
     "Texte rouge": "color: #dc2626;",
@@ -74,6 +75,10 @@ const CSS_SNIPPETS = {
     "Fond sombre": "background: #1e293b;\ncolor: white;",
     "Fond jaune": "background: #fef08a;",
   },
+  espacements:{
+   "espacements haut": "margin-top: 0px"
+
+  }
 };
 
 /* ===== 2. ÉTAT =====
@@ -90,6 +95,10 @@ function allCssBlocks() {
     out[cat] = Object.entries(items).map(([name, css]) => ({ name, css }));
   });
   return out;
+}
+// Retrouve la catégorie d'un bloc CSS à partir de son nom
+function cssCatOf(name) {
+  return Object.keys(CSS_SNIPPETS).find((cat) => name in CSS_SNIPPETS[cat]);
 }
 // Ajoute un bloc CSS à un bloc HTML
 function applyCssBlock(id, name, css) {
@@ -223,13 +232,15 @@ function renderPalette() {
     );
     if (!types.length) return;
     const details = document.createElement("details");
-    details.open = true;
+    details.open = false;
     const summary = document.createElement("summary");
     summary.textContent = catLabel;
     details.appendChild(summary);
     types.forEach((type) => {
       const btn = document.createElement("button");
       btn.textContent = "+ " + type.replace(/_/g, " ");
+      btn.dataset.type = type; // pour colorer selon le type
+      btn.dataset.cat = catId; // ... ou selon la catégorie
       btn.onclick = () => addBlock(type);
       btn.draggable = true;
       btn.ondragstart = (e) => {
@@ -247,7 +258,7 @@ function renderPalette() {
   el.appendChild(h2);
   Object.entries(allCssBlocks()).forEach(([cat, items]) => {
     const details = document.createElement("details");
-    details.open = true;
+    details.open = false;
     details.className = "css-cat";
     const summary = document.createElement("summary");
     summary.textContent = cat;
@@ -257,6 +268,7 @@ function renderPalette() {
       row.className = "palette-item";
       const btn = document.createElement("button");
       btn.className = "css-btn";
+      btn.dataset.csscat = cat; // pour colorer selon la catégorie CSS
       btn.textContent = "+ " + it.name;
       btn.title = it.css;
       btn.onclick = () => {
@@ -284,6 +296,8 @@ function renderList(list, container) {
   list.forEach((b) => {
     const div = document.createElement("div");
     div.className = "block";
+    div.dataset.type = b.type; // pour colorer selon le type
+    div.dataset.cat = BLOCK_TYPES[b.type]?.cat; // ... ou selon la catégorie
     div.innerHTML = `
       <span class="handle" draggable="true" title="Glisser">⠿</span> <strong>${b.type}</strong> &lt;${b.tag}&gt;
       <button data-act="up">↑</button>
@@ -313,6 +327,7 @@ function renderList(list, container) {
     b.cssBlocks.forEach((c, i) => {
       const cb = document.createElement("div");
       cb.className = "css-block";
+      cb.dataset.csscat = cssCatOf(c.name); // pour colorer selon la catégorie CSS
       const name = document.createElement("strong");
       name.textContent = "css";
       const del = document.createElement("button");
@@ -330,16 +345,22 @@ function renderList(list, container) {
     div.querySelector('[data-act="down"]').onclick = () => moveBlock(b.id, 1);
     div.querySelector('[data-act="del"]').onclick = () => removeBlock(b.id);
 
-    // Glisser-déposer : on attrape le bloc par sa poignée
-    div.querySelector(".handle").ondragstart = (e) => {
-      e.stopPropagation();
+    // Glisser-déposer : on peut attraper le bloc n'importe où (pas seulement par la poignée)
+    div.draggable = true;
+    // Sur un champ (texte, fichier) ou un bouton, on désactive le glisser
+    // pour pouvoir écrire / sélectionner / cliquer normalement
+    div.addEventListener("mousedown", (e) => {
+      div.draggable = !e.target.closest("input, textarea, select, button");
+    });
+    div.ondragstart = (e) => {
+      e.stopPropagation(); // un bloc enfant ne fait pas glisser son parent
       drag = { kind: "move", id: b.id };
       e.dataTransfer.setData("text/plain", String(b.id));
       e.dataTransfer.setDragImage(div, 0, 0);
     };
 
     // Image : import d'un fichier depuis l'ordinateur
-    if (b.tag === "img") {
+    if (b.tag === "img" ){
       const box = document.createElement("div");
       box.className = "img-import";
       const file = document.createElement("input");
@@ -444,10 +465,19 @@ function render() {
 }
 
 /* ===== 7. MODE CODE / APERÇU ===== */
-document.getElementById("toggle-code").onchange = (e) => {
-  document.getElementById("view-preview").hidden = e.target.checked;
-  document.getElementById("view-code").hidden = !e.target.checked;
-};
+/* Deux pictos : blocs / code (remplace la case "Voir le code") */
+function showView(showCode) {
+  document.getElementById("blocks").hidden = showCode;
+  document.getElementById("view-code").hidden = !showCode;
+  const btnBlocks = document.getElementById("btn-blocks");
+  const btnCode = document.getElementById("btn-code");
+  btnBlocks.classList.toggle("active", !showCode);
+  btnCode.classList.toggle("active", showCode);
+  btnBlocks.setAttribute("aria-pressed", !showCode);
+  btnCode.setAttribute("aria-pressed", showCode);
+}
+document.getElementById("btn-blocks").onclick = () => showView(false);
+document.getElementById("btn-code").onclick = () => showView(true);
 
 /* ===== 8. GLISSER-DÉPOSER =====
    - palette -> n'importe quelle zone : ajoute un bloc
@@ -545,6 +575,48 @@ document.ondragend = () => {
   drag = null;
 };
 
+/* ===== SUPPRESSION : glisser un bloc de la page vers la sidebar ===== */
+const trashZone = document.getElementById("sidebar");
+const isMovingBlock = () => drag && drag.kind === "move";
+
+trashZone.ondragover = (e) => {
+  if (!isMovingBlock()) return; // les blocs de la palette ne sont pas concernés
+  e.preventDefault();
+  dropLine.remove();
+  trashZone.classList.add("delete-hover");
+};
+trashZone.ondragleave = (e) => {
+  if (!trashZone.contains(e.relatedTarget))
+    trashZone.classList.remove("delete-hover");
+};
+trashZone.ondrop = (e) => {
+  if (!isMovingBlock()) return;
+  e.preventDefault();
+  trashZone.classList.remove("delete-hover");
+  removeBlock(drag.id);
+  drag = null;
+};
+// Si le glisser s'arrête ailleurs, on enlève aussi le surlignage
+document.addEventListener("dragend", () =>
+  trashZone.classList.remove("delete-hover"),
+);
+
 /* ===== DÉMARRAGE ===== */
 renderPalette();
 render();
+
+
+/* ===== Ouverture / fermeture de la barre bleue ===== */
+const sidebar = document.getElementById("sidebar");
+const picto = document.getElementById("fond_picto");
+function toggleSidebar() {
+  const open = sidebar.classList.toggle("open");
+  picto.setAttribute("aria-expanded", open);
+}
+picto.addEventListener("click", toggleSidebar);
+picto.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    toggleSidebar();
+  }
+});
