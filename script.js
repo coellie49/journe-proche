@@ -39,7 +39,7 @@ const BLOCK_TYPES = {
 
   // --- Médias ---
   image: { cat: "medias", tag: "img", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
-  vidéo: { cat: "medias", tag: "iframe", text: "", css: "max-width: 100%;" }, // text = texte alternatif (alt)
+  vidéo: { cat: "medias", tag: "video", text: "", css: "max-width: 100%;" }, // fichier importé ou lien (mp4, YouTube...)
 
   // --- Listes ---
   liste: { cat: "listes", tag: "ul", text: "", css: "", list: true },
@@ -61,6 +61,44 @@ const CATEGORIES = {
    Pour ajouter un bloc : "Nom affiché": "code CSS;"  (\n pour plusieurs lignes)
    Pour ajouter une catégorie : ajoute une nouvelle entrée au niveau du dessus. */
 const CSS_SNIPPETS = {
+  /* --- Réglages : blocs dont on choisit soi-même la valeur (taille en px, couleur...) --- */
+  Réglages: {
+    "Taille du texte": "font-size: 16px;",
+    "Épaisseur du texte": "font-weight: 400;",
+    Interligne: "line-height: 1.5;",
+    "Espacement des lettres": "letter-spacing: 1px;",
+    "Couleur du texte": "color: #000000;",
+    "Couleur de fond": "background-color: #ffffff;",
+    Largeur: "width: 300px;",
+    "Largeur min": "min-width: 100px;",
+    "Largeur max": "max-width: 600px;",
+    Hauteur: "height: 200px;",
+    "Hauteur min": "min-height: 100px;",
+    "Hauteur max": "max-height: 400px;",
+    "Marge extérieure": "margin: 10px;",
+    "Marge extérieure haut": "margin-top: 10px;",
+    "Marge extérieure bas": "margin-bottom: 10px;",
+    "Marge extérieure gauche": "margin-left: 10px;",
+    "Marge extérieure droite": "margin-right: 10px;",
+    "Marge intérieure": "padding: 10px;",
+    "Marge intérieure haut": "padding-top: 10px;",
+    "Marge intérieure bas": "padding-bottom: 10px;",
+    "Marge intérieure gauche": "padding-left: 10px;",
+    "Marge intérieure droite": "padding-right: 10px;",
+    "Écart entre les blocs": "gap: 10px;",
+    "Bordure réglable": "border: 1px solid #000000;",
+    "Arrondi des coins": "border-radius: 8px;",
+    "Ombre réglable": "box-shadow: 0px 4px 8px #999999;",
+    Opacité: "opacity: 1;",
+    Rotation: "transform: rotate(0deg);",
+    "Zoom (échelle)": "transform: scale(1);",
+    "Décalage depuis le haut": "top: 0px;",
+    "Décalage depuis la gauche": "left: 0px;",
+    "Décalage depuis la droite": "right: 0px;",
+    "Décalage depuis le bas": "bottom: 0px;",
+    "Ordre de superposition": "z-index: 1;",
+  },
+
   /* --- Texte : alignement, style, taille --- */
   Texte: {
     Centré: "text-align: center;",
@@ -271,11 +309,27 @@ function moveBlock(id, dir) {
 }
 
 /* ===== 5. GÉNÉRATION DU CODE ===== */
+// Vidéo : lien YouTube / Vimeo -> <iframe>, sinon balise <video controls>
+function videoEmbedUrl(url) {
+  let m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+  if (m) return "https://www.youtube.com/embed/" + m[1];
+  m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (m) return "https://player.vimeo.com/video/" + m[1];
+  return null;
+}
+function videoHtml(b, pad, forCode) {
+  const src = forCode ? b.fileName : b.src;
+  const embed = videoEmbedUrl(b.fileName || "");
+  if (embed)
+    return `${pad}<iframe class="bloc-${b.id}" src="${embed}" width="560" height="315" allowfullscreen></iframe>`;
+  return `${pad}<video class="bloc-${b.id}" controls${src ? ` src="${src}"` : ""}></video>`;
+}
 // forCode = true : on affiche le nom du fichier au lieu de l'image encodée (trop longue)
 function htmlOf(list, depth = 0, forCode = false) {
   const pad = "  ".repeat(depth);
   return list
     .map((b) => {
+      if (b.tag === "video") return videoHtml(b, pad, forCode);
       if (b.tag === "img") {
         const src = forCode ? b.fileName : b.src;
         return `${pad}<img class="bloc-${b.id}" src="${src}" alt="${b.text}">`;
@@ -329,6 +383,7 @@ function htmlCodeColored(list, depth = 0) {
   return list
     .map((b) => {
       const ln = (text) => codeSpan("code-line", b, text);
+      if (b.tag === "video") return ln(videoHtml(b, pad, true));
       if (b.tag === "img")
         return ln(`${pad}<img class="bloc-${b.id}" src="${b.fileName}" alt="${b.text}">`);
       if (b.items) {
@@ -445,6 +500,150 @@ function renderPalette() {
   });
 }
 
+/* ===== ÉDITEUR DE VALEURS CSS =====
+   Chaque ligne "propriété: valeur;" d'un bloc CSS devient modifiable :
+   nombre + unité (px, %, em...), sélecteur de couleur, liste de choix ou texte. */
+const UNITLESS = new Set(["line-height", "opacity", "z-index", "flex", "font-weight", "order", "flex-grow", "flex-shrink"]);
+const UNIT_GROUPS = [["px", "%", "em", "rem", "vh", "vw"], ["deg", "turn"], ["s", "ms"]];
+const BORDER_STYLES = ["none", "solid", "dashed", "dotted", "double"];
+const CSS_CHOICES = {
+  "text-align": ["left", "center", "right", "justify"],
+  "font-style": ["normal", "italic"],
+  "font-weight": ["normal", "bold"],
+  "text-decoration": ["none", "underline", "line-through", "overline"],
+  "text-transform": ["none", "uppercase", "lowercase", "capitalize"],
+  display: ["block", "inline", "inline-block", "flex", "grid", "none"],
+  "flex-direction": ["row", "column", "row-reverse", "column-reverse"],
+  "flex-wrap": ["nowrap", "wrap"],
+  "justify-content": ["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"],
+  "align-items": ["flex-start", "center", "flex-end", "stretch", "baseline"],
+  position: ["static", "relative", "absolute", "fixed", "sticky"],
+  float: ["none", "left", "right"],
+  "object-fit": ["fill", "contain", "cover", "none"],
+  overflow: ["visible", "hidden", "scroll", "auto"],
+};
+const NAMED_COLORS = { white: "#ffffff", black: "#000000", red: "#ff0000", blue: "#0000ff", green: "#008000", yellow: "#ffff00", orange: "#ffa500", purple: "#800080", gray: "#808080", grey: "#808080" };
+function toHex(v) {
+  v = v.toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(v)) return v;
+  if (/^#[0-9a-f]{3}$/.test(v)) return "#" + [...v.slice(1)].map((c) => c + c).join("");
+  return NAMED_COLORS[v] || null;
+}
+// Découpe une chaîne en gardant les parenthèses intactes
+function splitOutsideParens(str, isSep) {
+  const out = [];
+  let cur = "", depth = 0;
+  for (const ch of str) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (depth === 0 && isSep(ch)) {
+      if (cur.trim()) out.push(cur.trim());
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+function parseDeclarations(css) {
+  return splitOutsideParens(css, (c) => c === ";")
+    .map((line) => {
+      const i = line.indexOf(":");
+      if (i < 0) return null;
+      const value = line.slice(i + 1).trim();
+      const hasComma = splitOutsideParens(value, (c) => c === ",").length > 1;
+      return {
+        prop: line.slice(0, i).trim(),
+        tokens: hasComma ? [value] : splitOutsideParens(value, (c) => /\s/.test(c)),
+      };
+    })
+    .filter(Boolean);
+}
+function tokenWidget(prop, tok, set) {
+  // 1. Nombre (avec unité et éventuelle fonction : rotate(10deg)...)
+  const m = tok.match(/^([a-zA-Z-]+\()?(-?\d*\.?\d+)([a-zA-Z%]*)(\))?$/);
+  if (m && !m[1] === !m[4]) {
+    const wrap = document.createElement("span");
+    wrap.className = "css-token";
+    if (m[1]) wrap.append(m[1].slice(0, -1) + " ");
+    const num = document.createElement("input");
+    num.type = "number";
+    num.className = "css-num";
+    num.step = UNITLESS.has(prop) || m[2].includes(".") ? "0.1" : "1";
+    num.value = m[2];
+    wrap.appendChild(num);
+    let unit = null;
+    if (!(UNITLESS.has(prop) && !m[3])) {
+      unit = document.createElement("select");
+      const group = UNIT_GROUPS.find((g) => g.includes(m[3])) || UNIT_GROUPS[0];
+      const opts = [...(m[3] === "" ? [""] : []), ...group];
+      if (!opts.includes(m[3])) opts.push(m[3]);
+      opts.forEach((u) => unit.add(new Option(u || "—", u)));
+      unit.value = m[3];
+      wrap.appendChild(unit);
+    }
+    const update = () =>
+      set(`${m[1] || ""}${num.value === "" ? 0 : num.value}${unit ? unit.value : m[3]}${m[4] || ""}`);
+    num.oninput = update;
+    if (unit) unit.onchange = update;
+    return wrap;
+  }
+  // 2. Couleur
+  const hex = toHex(tok);
+  if (hex) {
+    const col = document.createElement("input");
+    col.type = "color";
+    col.className = "css-color";
+    col.value = hex;
+    col.oninput = () => set(col.value);
+    return col;
+  }
+  // 3. Liste de choix
+  const choices = /^(border|outline)/.test(prop) && BORDER_STYLES.includes(tok) ? BORDER_STYLES : CSS_CHOICES[prop];
+  if (choices && choices.includes(tok)) {
+    const sel = document.createElement("select");
+    choices.forEach((c) => sel.add(new Option(c, c)));
+    sel.value = tok;
+    sel.onchange = () => set(sel.value);
+    return sel;
+  }
+  // 4. Texte libre
+  const txt = document.createElement("input");
+  txt.type = "text";
+  txt.className = "css-text";
+  txt.value = tok;
+  txt.size = Math.max(6, Math.min(24, tok.length + 1));
+  txt.oninput = () => set(txt.value);
+  return txt;
+}
+// Construit l'éditeur pour obj.css (obj = un bloc HTML ou un bloc CSS)
+function buildCssEditor(obj) {
+  const decls = parseDeclarations(obj.css);
+  const wrap = document.createElement("div");
+  wrap.className = "css-edit";
+  const save = () => {
+    obj.css = decls.map((d) => `${d.prop}: ${d.tokens.join(" ")};`).join("\n");
+    renderOutput(); // on ne reconstruit pas les blocs : le curseur reste dans le champ
+  };
+  decls.forEach((d) => {
+    const row = document.createElement("div");
+    row.className = "css-row";
+    const label = document.createElement("span");
+    label.className = "css-prop";
+    label.textContent = d.prop;
+    row.appendChild(label);
+    d.tokens.forEach((tok, i) =>
+      row.appendChild(
+        tokenWidget(d.prop, tok, (v) => {
+          d.tokens[i] = v;
+          save();
+        }),
+      ),
+    );
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
 // Affiche une liste de blocs dans "container" (récursif pour les conteneurs)
 function renderList(list, container) {
   list.forEach((b) => {
@@ -457,7 +656,7 @@ function renderList(list, container) {
       <button data-act="up">↑</button>
       <button data-act="down">↓</button>
       <button data-act="del">✕</button>
-      ${b.children || b.items ? "" : `<input data-field="text" placeholder="${b.tag === "img" ? "Texte alternatif (alt)" : "Texte"}" value="">`}
+      ${b.children || b.items || b.tag === "video" ? "" : `<input data-field="text" placeholder="${b.tag === "img" ? "Texte alternatif (alt)" : "Texte"}" value="">`}
       <div class="css-stack"></div>
     `;
     // On remplit les valeurs via JS pour éviter les soucis de guillemets
@@ -478,6 +677,14 @@ function renderList(list, container) {
 
     // Blocs CSS ajoutés à ce bloc : on peut les retirer, pas modifier leur code
     const stack = div.querySelector(".css-stack");
+    if (b.css.trim()) {
+      const base = document.createElement("div");
+      base.className = "css-block css-base";
+      const t = document.createElement("strong");
+      t.textContent = "css de base";
+      base.append(t, buildCssEditor(b));
+      stack.appendChild(base);
+    }
     b.cssBlocks.forEach((c, i) => {
       const cb = document.createElement("div");
       cb.className = "css-block";
@@ -491,7 +698,7 @@ function renderList(list, container) {
         b.cssBlocks.splice(i, 1);
         render();
       };
-      cb.append(name, " " + c.name + " ", del);
+      cb.append(name, " " + c.name + " ", del, buildCssEditor(c));
       stack.appendChild(cb);
     });
 
@@ -537,6 +744,40 @@ function renderList(list, container) {
         thumb.src = b.src;
         thumb.className = "thumb";
         box.appendChild(thumb);
+      }
+      div.insertBefore(box, div.querySelector(".css-stack"));
+    }
+
+    // Vidéo : import d'un fichier OU lien (mp4 direct, YouTube, Vimeo)
+    if (b.tag === "video") {
+      const box = document.createElement("div");
+      box.className = "img-import";
+      const file = document.createElement("input");
+      file.type = "file";
+      file.accept = "video/*";
+      file.onchange = () => {
+        const f = file.files[0];
+        if (!f) return;
+        // URL locale (rapide, sans encoder la vidéo en texte)
+        b.src = URL.createObjectURL(f);
+        b.fileName = f.name;
+        render();
+      };
+      const url = document.createElement("input");
+      url.type = "url";
+      url.placeholder = "ou colle un lien (mp4, YouTube, Vimeo)";
+      url.value = /^https?:/.test(b.fileName) ? b.fileName : "";
+      url.onchange = () => {
+        const v = url.value.trim();
+        b.src = v;
+        b.fileName = v;
+        render();
+      };
+      box.append(file, url);
+      if (b.fileName && !/^https?:/.test(b.fileName)) {
+        const name = document.createElement("div");
+        name.textContent = "🎬 " + b.fileName;
+        box.appendChild(name);
       }
       div.insertBefore(box, div.querySelector(".css-stack"));
     }
@@ -608,7 +849,7 @@ function renderOutput() {
   const htmlCode = generateHTML(true); // code affiché : noms de fichiers
   const css = generateCSS();
   document.getElementById("preview").srcdoc =
-    `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
+    `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>img,video,iframe{max-width:100%}${css}</style></head><body>${html}</body></html>`;
   document.getElementById("code-html").innerHTML = htmlCodeColored(blocks);
   document.getElementById("code-css").innerHTML = cssCodeColored(blocks);
 }

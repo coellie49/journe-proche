@@ -510,3 +510,181 @@ header {
 .code-rule[data-type="bouton"] {
   background: #c5cae9;
 }
+
+/* =====================================================================
+   RESPONSIVE : PC (large) -> tablette -> téléphone
+   ===================================================================== */
+
+/* Le texte et les médias ne dépassent jamais de leur zone */
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+.block,
+.css-block {
+  overflow-wrap: anywhere;
+}
+
+/* ----- Petit écran d'ordinateur / tablette paysage ----- */
+@media (max-width: 1200px) {
+  #workspace {
+    width: 420px;
+  }
+  #sidebar.open {
+    width: min(585px, 55vw);
+  }
+  #palette {
+    width: calc(100% - 90px);
+  }
+}
+
+/* ----- Tablette portrait / téléphone ----- */
+@media (max-width: 800px) {
+  header {
+    height: 60px;
+  }
+  #logo_mds,
+  #logoLiteWeb {
+    max-width: 40vw;
+  }
+
+  /* La page entière défile verticalement : blocs en haut, aperçu en dessous */
+  #app {
+    position: relative;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-left: 60px; /* place pour la barre bleue fixée à gauche */
+  }
+
+  /* Barre bleue : fine bande à gauche, elle se déploie par-dessus le contenu */
+  #sidebar {
+    position: fixed;
+    top: 60px; /* hauteur du header */
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    width: 56px;
+    padding: 6px;
+    border-radius: 0 24px 24px 0;
+  }
+  #sidebar.open {
+    width: min(360px, 90vw);
+  }
+  #fond_picto {
+    right: 6px;
+    width: 44px;
+    height: 72px;
+    border-radius: 40px;
+  }
+  #fond_picto svg {
+    width: 22px;
+    height: 36px;
+  }
+  #palette {
+    top: 6px;
+    left: 6px;
+    width: calc(100% - 64px);
+    height: calc(100% - 12px);
+  }
+  /* Boutons plus faciles à toucher */
+  #palette button {
+    min-height: 40px;
+    font-size: 16px;
+  }
+  #palette summary {
+    padding: 8px 0;
+  }
+
+  /* Espace de travail : pleine largeur, pictos blocs/code en haut à droite */
+  #workspace {
+    flex: none;
+    flex-direction: column;
+    width: 100%;
+    min-height: 55vh;
+    overflow: visible;
+  }
+  #workspace > #blocks,
+  #workspace > #view-code {
+    width: 100%;
+    max-width: none;
+    flex: none;
+  }
+  #workspace > #blocks {
+    min-height: 40vh;
+  }
+  #view-switch {
+    order: -1;
+    align-self: flex-end;
+    margin-left: 0;
+  }
+
+  /* Sortie : aperçu sur toute la largeur, hauteur confortable */
+  #output {
+    flex: none;
+    width: 100%;
+    height: 70vh;
+    height: 70dvh;
+    overflow: hidden;
+  }
+
+  /* Champs et boutons des blocs : taille tactile (16px évite le zoom iOS) */
+  .block input,
+  .block textarea,
+  .block button {
+    font-size: 16px;
+    min-height: 36px;
+  }
+  .block button {
+    min-width: 36px;
+  }
+}
+
+/* ===== Éditeur de valeurs CSS (taille en px, couleur, choix...) ===== */
+.css-edit {
+  margin-top: 4px;
+}
+.css-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+.css-prop {
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 90px;
+}
+.css-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+.block .css-num {
+  width: 70px;
+}
+.block .css-color {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+}
+.block .css-text {
+  width: auto;
+  max-width: 100%;
+}
+.css-edit select {
+  cursor: pointer;
+}
+.css-base {
+  background: #f4f4f4;
+}
+
+/* Catégorie "Réglages" (valeurs modifiables) */
+.css-block[data-csscat="Réglages"],
+#palette .css-btn[data-csscat="Réglages"] {
+  background: #e0f2f1;
+  border: 2px solid #00897b;
+}
