@@ -13,7 +13,7 @@ const BLOCK_TYPES = {
   texte: { cat: "texte", tag: "p", text: "Texte", css: "" },
   bouton: { cat: "texte", tag: "button", text: "Bouton", css: "" },
   // --- Mise en page ---
-  séparation: {
+  boite: {
     cat: "mise_en_page",
     tag: "div",
     text: "",
@@ -61,24 +61,122 @@ const CATEGORIES = {
    Pour ajouter un bloc : "Nom affiché": "code CSS;"  (\n pour plusieurs lignes)
    Pour ajouter une catégorie : ajoute une nouvelle entrée au niveau du dessus. */
 const CSS_SNIPPETS = {
+  /* --- Texte : alignement, style, taille --- */
   Texte: {
     Centré: "text-align: center;",
     "Aligné à droite": "text-align: right;",
     "Aligné à gauche": "text-align: left;",
+    Justifié: "text-align: justify;",
+    Gras: "font-weight: bold;",
+    Italique: "font-style: italic;",
+    Souligné: "text-decoration: underline;",
+    "Sans soulignement": "text-decoration: none;",
+    Majuscules: "text-transform: uppercase;",
+    "Petit texte": "font-size: 14px;",
+    "Texte moyen": "font-size: 18px;",
+    "Grand texte": "font-size: 28px;",
+    "Très grand texte": "font-size: 48px;",
+    "Interligne aéré": "line-height: 1.6;",
+    "Police avec empattements": "font-family: Georgia, serif;",
+    "Police sans empattements": "font-family: Arial, sans-serif;",
   },
+
+  /* --- Couleurs du texte --- */
   Couleurs: {
     "Texte rouge": "color: #dc2626;",
     "Texte bleu": "color: #2563eb;",
     "Texte vert": "color: #16a34a;",
     "Texte blanc": "color: white;",
+    "Texte noir": "color: black;",
+    "Texte gris": "color: #6b7280;",
+    "Texte jaune": "color: #eab308;",
+    "Texte orange": "color: #ea580c;",
+    "Texte violet": "color: #7c3aed;",
+    "Texte rose": "color: #db2777;",
+    "Texte turquoise": "color: #2dc6d2;",
+    "Texte bleu foncé": "color: #002dce;",
+  },
+
+  /* --- Couleurs de fond --- */
+  Fonds: {
+    "Fond blanc": "background: white;",
+    "Fond noir": "background: black;",
     "Fond gris clair": "background: #f1f5f9;",
     "Fond sombre": "background: #1e293b;\ncolor: white;",
     "Fond jaune": "background: #fef08a;",
+    "Fond bleu": "background: #2563eb;",
+    "Fond bleu clair": "background: #dbeafe;",
+    "Fond rouge clair": "background: #fee2e2;",
+    "Fond vert clair": "background: #dcfce7;",
+    "Fond orange clair": "background: #fed7aa;",
+    "Fond violet clair": "background: #ede9fe;",
+    "Fond rose clair": "background: #fce7f3;",
+    "Fond turquoise": "background: #2dc6d2;",
+    "Fond bleu foncé": "background: #002dce;\ncolor: white;",
   },
-  espacements:{
-   "espacements haut": "margin-top: 0px"
 
-  }
+  /* --- Disposition : où se placent les blocs À L'INTÉRIEUR d'un bloc conteneur --- */
+  Disposition: {
+    "Côte à côte": "display: flex;\nflex-direction: row;",
+    "Les uns sous les autres": "display: flex;\nflex-direction: column;",
+    "Centrer le contenu": "display: flex;\njustify-content: center;\nalign-items: center;",
+    "Espacer les blocs": "display: flex;\njustify-content: space-between;",
+    "Contenu à droite": "display: flex;\njustify-content: flex-end;",
+    "Retour à la ligne auto": "flex-wrap: wrap;",
+    "Écart de 10px": "gap: 10px;",
+    "Écart de 20px": "gap: 20px;",
+    "Grille 2 colonnes": "display: grid;\ngrid-template-columns: repeat(2, 1fr);\ngap: 10px;",
+    "Grille 3 colonnes": "display: grid;\ngrid-template-columns: repeat(3, 1fr);\ngap: 10px;",
+  },
+
+  /* --- Position : où se place le bloc LUI-MÊME dans la page --- */
+  Position: {
+    "Bloc centré": "display: block;\nmargin-left: auto;\nmargin-right: auto;",
+    "Bloc à droite": "display: block;\nmargin-left: auto;",
+    "Bloc à gauche": "display: block;\nmargin-right: auto;",
+    "Flotte à gauche (texte autour)": "float: left;\nmargin-right: 10px;",
+    "Flotte à droite (texte autour)": "float: right;\nmargin-left: 10px;",
+    "Collé en haut au défilement": "position: sticky;\ntop: 0;",
+    "Au-dessus des autres": "position: relative;\nz-index: 10;",
+  },
+
+  /* --- Tailles --- */
+  Tailles: {
+    "Largeur 100%": "width: 100%;",
+    "Largeur 75%": "width: 75%;",
+    "Largeur 50%": "width: 50%;",
+    "Largeur 25%": "width: 25%;",
+    "Largeur 300px": "width: 300px;",
+    "Largeur max 600px": "max-width: 600px;",
+    "Hauteur 200px": "height: 200px;",
+    "Hauteur de l'écran": "min-height: 100vh;",
+    "Image qui remplit (cover)": "object-fit: cover;",
+  },
+
+  /* --- Espacements --- */
+  espacements: {
+    "espacements haut": "margin-top: 0px;",
+    "Sans marge": "margin: 0;",
+    "Marge extérieure petite": "margin: 8px;",
+    "Marge extérieure moyenne": "margin: 16px;",
+    "Marge extérieure grande": "margin: 32px;",
+    "Marge en haut 20px": "margin-top: 20px;",
+    "Marge en bas 20px": "margin-bottom: 20px;",
+    "Marge intérieure petite": "padding: 8px;",
+    "Marge intérieure moyenne": "padding: 16px;",
+    "Marge intérieure grande": "padding: 32px;",
+  },
+
+  /* --- Bordures et formes --- */
+  Bordures: {
+    "Sans bordure": "border: none;",
+    "Bordure fine noire": "border: 1px solid black;",
+    "Bordure épaisse noire": "border: 3px solid black;",
+    "Bordure grise": "border: 1px solid #cbd5e1;",
+    "Coins arrondis": "border-radius: 12px;",
+    "Très arrondi (pilule)": "border-radius: 999px;",
+    "Ombre légère": "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);",
+  },
 };
 
 /* ===== 2. ÉTAT =====
@@ -215,6 +313,62 @@ function generateHTML(forCode = false) {
 }
 function generateCSS() {
   return cssOf(blocks);
+}
+
+/* ===== 5 bis. CODE COLORÉ (affichage "Voir le code") =====
+   Chaque ligne / règle est enveloppée dans un <span> qui porte la catégorie
+   (data-cat) et le type (data-type) du bloc : le CSS la colore comme le bloc. */
+const escHtml = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const codeSpan = (cls, b, text) =>
+  `<span class="${cls}" data-cat="${BLOCK_TYPES[b.type]?.cat || ""}" data-type="${b.type}">${escHtml(text)}</span>`;
+
+// Même texte que htmlOf(..., true), mais ligne par ligne et coloré
+function htmlCodeColored(list, depth = 0) {
+  const pad = "  ".repeat(depth);
+  return list
+    .map((b) => {
+      const ln = (text) => codeSpan("code-line", b, text);
+      if (b.tag === "img")
+        return ln(`${pad}<img class="bloc-${b.id}" src="${b.fileName}" alt="${b.text}">`);
+      if (b.items) {
+        if (!b.items.length)
+          return ln(`${pad}<${b.tag} class="bloc-${b.id}"></${b.tag}>`);
+        return (
+          ln(`${pad}<${b.tag} class="bloc-${b.id}">`) +
+          b.items.map((it) => ln(`${pad}  <li>${it}</li>`)).join("") +
+          ln(`${pad}</${b.tag}>`)
+        );
+      }
+      if (b.children && b.children.length)
+        return (
+          ln(`${pad}<${b.tag} class="bloc-${b.id}">`) +
+          htmlCodeColored(b.children, depth + 1) +
+          ln(`${pad}</${b.tag}>`)
+        );
+      const text = b.children ? "" : b.text;
+      return ln(`${pad}<${b.tag} class="bloc-${b.id}">${text}</${b.tag}>`);
+    })
+    .join("");
+}
+
+// Une règle CSS = un bloc coloré, avec la couleur du bloc HTML correspondant
+function cssCodeColored(list) {
+  return list
+    .map((b) => {
+      const all = [b.css, ...b.cssBlocks.map((c) => c.css)]
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .join("\n")
+        .split("\n")
+        .join("\n  ");
+      const rule = `.bloc-${b.id} {\n  ${all}\n}`;
+      return (
+        codeSpan("code-rule", b, rule) +
+        (b.children && b.children.length ? cssCodeColored(b.children) : "")
+      );
+    })
+    .join("");
 }
 
 /* ===== 6. AFFICHAGE ===== */
@@ -455,8 +609,8 @@ function renderOutput() {
   const css = generateCSS();
   document.getElementById("preview").srcdoc =
     `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
-  document.getElementById("code-html").textContent = htmlCode;
-  document.getElementById("code-css").textContent = css;
+  document.getElementById("code-html").innerHTML = htmlCodeColored(blocks);
+  document.getElementById("code-css").innerHTML = cssCodeColored(blocks);
 }
 
 function render() {
