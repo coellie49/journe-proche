@@ -413,10 +413,10 @@ header {
 }
 #view-switch {
   display: flex;
-  padding: 10px 20px;
+  padding: 8px 14px;
   align-items: center;
-  gap: 15px;
-  border-radius: 15px;
+  gap: 10px;
+  border-radius: 12px;
   background: #020068;
   flex-shrink: 0;
   align-self: flex-start; /* en haut */
@@ -425,8 +425,8 @@ header {
 }
 .view-btn {
   display: flex;
-  width: 70px;
-  height: 70px;
+  width: 50px;
+  height: 50px;
   padding: 10px;
   flex-direction: column;
   justify-content: center;
@@ -444,8 +444,8 @@ header {
 }
 .view-btn svg {
   flex-shrink: 0;
-  align-self: stretch;
-  height: 50px;
+  width: 30px;
+  height: 30px;
 }
 
 /* Curseurs normaux sur les champs et boutons à l'intérieur d'un bloc */
